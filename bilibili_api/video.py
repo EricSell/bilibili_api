@@ -208,8 +208,7 @@ def get_pages(bvid: str = None, aid: int = None, verify: utils.Verify = None):
     return get
 
 
-def get_download_url(bvid: str = None, aid: int = None, page: int = 0,
-                     verify: utils.Verify = None):
+def get_download_url(bvid: str = None, aid: int = None, page: int = 0, verify: utils.Verify = None):
     """
     获取视频下载链接
     :param aid:
@@ -230,29 +229,24 @@ def get_download_url(bvid: str = None, aid: int = None, page: int = 0,
         url = "https://www.bilibili.com/video/%s" % bvid
     else:
         url = "https://www.bilibili.com/video/av%s" % aid
-
     req = requests.get(url, cookies=verify.get_cookies(), headers=utils.DEFAULT_HEADERS, params={"p": page + 1})
-
     if req.ok:
         match = re.search("<script>window.__playinfo__=(.*?)</script>", req.text)
         if match is not None:
             text = match.group(1)
-            data = json.loads(text)
-            if data['code'] != 0:
-                raise exceptions.BilibiliException(data['code'], data['messsage'])
-            playurl = data['data']
-        else:
+            playurl = json.loads(text)
+        elif match is None:
             page_id = video_info["pages"][page]["cid"]
             url = API["video"]["info"]["playurl"]["url"]
             params = {
                 "bvid": bvid,
                 "avid": aid,
-                "qn": 120,
-                "cid": page_id,
-                "otype": 'json',
-                "fnval": 16
+                "qn": 112,
+                "cid": page_id
             }
             playurl = utils.get(url=url, params=params, cookies=verify.get_cookies())
+        else:
+            raise exceptions.BilibiliApiException("无法获取playurl")
         return playurl
     else:
         raise exceptions.NetworkException(req.status_code)
